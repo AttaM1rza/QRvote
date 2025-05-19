@@ -1,0 +1,8 @@
+output.pdf
+.DS_Store
+.vscode/
+*__pycache__*
+tests/
+voters/
+videos/
+own_notes.md
