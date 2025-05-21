@@ -1,76 +1,54 @@
+import argparse
 import os
 
 from config_detection_strategies import detection_strategies
 from qrvote import QRvote
 
 
-def registration_process():
-    """
-    This function should handle the registration of voters and create a QR code for each registered voter.
-    """
-    print("Registration process started...")
-    id_number = input("Enter voters ID-number: ")
-    name = input("Enter voters name: ")
-    print("Creating QR code...")
-    if not id_number.isdigit() or not name:
-        print("Invalid ID number. Please enter a valid number.")
-        return
-    _, qr_code_path = QRvote.create_voting_qr_code(id_number, name)
-    # TODO make the qr_code printable
-    #      add to it the ID number and name ...
-    pdf_output_file = QRvote.create_voting_qr_code_pdf(qr_code_path, id_number, name)
+def register_voter(id, name):
+    _, qr_code_path = QRvote.create_voting_qr_code(id, name)
+    pdf_output_file = QRvote.create_voting_qr_code_pdf(qr_code_path, id, name)
     os.system(f'open "{pdf_output_file}"')
-    print(f"QR code created for {name} with ID number {id_number}.")
+    print(f"QR code created for {name} with ID number {id}.")
 
 
-def voting_process():
-    """
-    This function should handle the voting process and detect QR codes from the camera stream.
-    """
-    sources = input("Enter sources seperated by comma (sources can be camera-id's or filepath's): ")
-    detection_strategy = input("Enter detection strategy (1) CV_QRCodeDetection (2) X: ")
-    # TODO UNCOMMENT THIS (FOR TESTING PURPOSES ONLY)
-    # sources = dummy_camera_stream_1 + "," + dummy_camera_stream_2
-    # sources = dummy_camera_stream_little_1
-    if not sources:
-        print("No sources provided. Exiting...")
-        return
-    sources = sources.split(",")
-    sources = [int(source) if source.isdigit() else source for source in sources]
-
-    if not detection_strategy:
-        print("No detection strategy provided.")
-        return
-
-    if detection_strategies.get(detection_strategy) is None:
-        print("Invalid detection strategy provided.")
-        return
-
-    detection_strategy = detection_strategies.get(detection_strategy)
-
-    qrvote = QRvote(sources=sources, detection_strategy=detection_strategy)
+def start_voting(sources, strategy_name):
+    strategy = detection_strategies.get(strategy_name)
+    qrvote = QRvote(sources=sources, detection_strategy=strategy)
     qrvote.detect_votes_from_camera_stream()
 
 
 def main():
-    while True:
-        print("QRvote Main Menu")
-        print("1. Register a voter")
-        print("2. Start voting process")
-        print("3. Exit")
-        choice = input("Select an option (1-3): ")
+    parser = argparse.ArgumentParser(description="QRvote CLI Tool")
+    subparsers = parser.add_subparsers(dest="command")
 
-        if choice == "1":
-            registration_process()
-        elif choice == "2":
-            voting_process()
-        elif choice == "3":
-            print("Exiting...")
-            break
-        else:
-            print("Invalid option. Please try again.")
+    register_parser = subparsers.add_parser("register", help="Register a voter")
+    register_parser.add_argument("--id", required=True, help="Jamaat ID-number")
+    register_parser.add_argument("--name", required=True, help="Voter name")
 
-    return
+    vote_parser = subparsers.add_parser("vote", help="Start the voting process")
+    vote_parser.add_argument(
+        "--sources",
+        help="Comma-separated list of camera IDs (ex. 0, 1) or file paths (ex. videos/sample.mp4). By default, the laptop camera is 0.",
+        default="0",
+    )
+    vote_parser.add_argument(
+        "--strategy",
+        help=f"Used Detection strategy. Currently available: {', '.join(detection_strategies.keys())}",
+        default=list(detection_strategies.keys())[0],
+    )
+
+    args = parser.parse_args()
+
+    if args.command is None:
+        parser.print_help()
+        return
+
+    if args.command == "register":
+        register_voter(args.id, args.name)
+    elif args.command == "vote":
+        sources = [int(s) if s.isdigit() else s for s in args.sources.split(",")]
+        start_voting(sources, args.strategy)
 
 
 if __name__ == "__main__":

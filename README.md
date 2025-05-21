@@ -2,6 +2,8 @@
 
 ## Install requirements
 
+This command will install the needed dependencies.
+
 ```
 pip3 install -r requirements.txt
 ```
@@ -11,45 +13,43 @@ pip3 install -r requirements.txt
 Run the following command:
 
 ```
-python3 main.py
+python3 main.py register --id <input> --name <input>
 ```
 
-Choose Menu Option 1.
-Enter the Jamaat ID number and name of the voter.
-A QR code will appear in your web browser. You can now print it.
+Provide the Jamaat ID number and name of the voter.
+A QR code will appear as a PDF. You can now print it.
+
+for more information and additional help run:
+
+```
+python3 main.py register --help
+```
 
 ## Start the Voting Process
 
-Run the command again:
+Run the following command to launch the voting functionality. It will use per default the laptop camera, as input source.
 
 ```
-python3 main.py
+python3 main.py vote
 ```
-
-Choose Menu Option 2.
-Enter the camera or video sources.
-
-**By default, the laptop camera is 0.**
-Example:
-`Enter sources separated by comma (camera IDs or file paths): 0`
-
-You can also use a video file. Example:
-`Enter sources separated by comma (camera IDs or file paths): videos/camera_stream_1`
-
-You can use multiple sources (like several cameras or video files) by separating them with commas. Example:
-`Enter sources separated by comma (camera IDs or file paths): 0,1,2,3,videos/camera_stream_1,videos/camera_stream_2`
 
 Now, hold the printed QR code in front of the camera.
 When it is detected, the name and ID number will be shown on the video stream.
 To terminate the windows press `q`.
 
-## Remarks:
+To use multiple cameras or video files as input sources and configure different detection methods, run this command to learn more:
+
+```
+python3 main.py vote --help
+```
+
+# Development
+
+## Interchangeable QR-Code Detection
+
+To extend QRvote with additional QR code detection libraries and algorithms, define a custom class that inherits from the `DetectionStrategy` class and implements its abstract method `detect_votes_from_frame(frame)` using your own QR code detection logic. Make sure to register the newly created class in the `detection_strategies` list within `config_detection_strategies.py`. Once registered, it will be available and selectable in the menu.
+
+# Remarks
 
 - The system can detect multiple QR codes at the same time.
 - Detection is not optimized for long distances yet.
-
-# Interchangeable QR-Code Detection
-
-To extend QRvote with additional QR code detection libraries and algorithms, define a custom class that inherits from the `DetectionStrategy` class and implements its abstract method `detect_votes_from_frame(frame)` using your own QR code detection logic.
-Make sure to register the newly created class in the `detection_strategies` list within `config_detection_strategies.py`.
-Once registered, it will be available and selectable in the menu.
