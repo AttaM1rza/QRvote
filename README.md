@@ -41,8 +41,15 @@ You can use multiple sources (like several cameras or video files) by separating
 
 Now, hold the printed QR code in front of the camera.
 When it is detected, the name and ID number will be shown on the video stream.
+To terminate the windows press `q`.
 
 ## Remarks:
 
 - The system can detect multiple QR codes at the same time.
 - Detection is not optimized for long distances yet.
+
+# Interchangeable QR-Code Detection
+
+To extend QRvote with additional QR code detection libraries and algorithms, define a custom class that inherits from the `DetectionStrategy` class and implements its abstract method `detect_votes_from_frame(frame)` using your own QR code detection logic.
+Make sure to register the newly created class in the `detection_strategies` list within `config_detection_strategies.py`.
+Once registered, it will be available and selectable in the menu.

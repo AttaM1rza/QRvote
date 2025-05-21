@@ -1,5 +1,6 @@
 import ast
 import os
+from abc import ABC, abstractmethod
 from pathlib import Path
 from threading import Thread
 from typing import List, Union
@@ -21,15 +22,70 @@ from config import pdf_output_file, voters_dir
 from stream import Stream
 
 
+class DetectionStrategy(ABC):
+    @abstractmethod
+    def detect_votes_from_frame(self, frame):
+        pass
+
+    def label_detected_qrcodes(self, frame, corner_points, content):
+        frame = putText(
+            img=frame,
+            text=content,
+            org=corner_points[0].astype(int),
+            fontFace=FONT_HERSHEY_SIMPLEX,
+            fontScale=1,
+            color=(0, 0, 0),
+            thickness=2,
+            lineType=LINE_AA,
+        )
+        return frame
+
+    def make_detected_qrcodes_visible(self, frame, corner_points):
+        frame = polylines(
+            img=frame,
+            pts=[corner_points.astype(int)],
+            isClosed=True,
+            color=(0, 0, 255),
+            thickness=5,
+        )
+        return frame
+
+
+class CV2QRCodeDetector(DetectionStrategy):
+    def detect_votes_from_frame(self, frame):
+        detector = QRCodeDetector()
+        result, multi_content, multi_corner_points, _ = detector.detectAndDecodeMulti(frame)
+        detetected_voters = []
+        if result:
+            for content, corner_points in zip(multi_content, multi_corner_points):
+                try:
+                    content_dict = ast.literal_eval(content)
+                    display_text = ", ".join(str(key) for key in content_dict.values())
+                    detetected_voters.append(content_dict["id_number"])
+                    frame = self.make_detected_qrcodes_visible(frame, corner_points)
+                    frame = self.label_detected_qrcodes(frame, corner_points, display_text)
+                except Exception:
+                    pass
+        return frame, detetected_voters
+
+
 class QRvote:
     window_name = "QRvote"
     streams: List[Stream] = []
 
-    def __init__(self, sources: List[Union[int, Path]]):
-        self.detector = QRCodeDetector()
+    def __init__(self, sources: List[Union[int, Path]], detection_strategy: DetectionStrategy):
+        self.__detection_strategy = detection_strategy
         for source in sources:
             stream = Stream(camera_id=source, name=str(source))
             self.streams.append(stream)
+
+    @property
+    def detection_strategy(self) -> DetectionStrategy:
+        return self.__detection_strategy
+
+    @detection_strategy.setter
+    def detection_strategy(self, detection_strategy: DetectionStrategy) -> None:
+        self.__detection_strategy = detection_strategy
 
     def detect_votes_from_camera_stream(self):
         for stream in self.streams:
@@ -60,47 +116,9 @@ class QRvote:
         while True:
             result, frame = stream.video_capture.read()
             if result:
-                processed_frame, voters = self.detect_votes_from_frame(frame)
+                processed_frame, voters = self.detection_strategy.detect_votes_from_frame(frame)
                 stream.latest_frame = processed_frame
                 stream.detected_voters = voters
-
-    def detect_votes_from_frame(self, frame):
-        result, multi_content, multi_corner_points, _ = self.detector.detectAndDecodeMulti(frame)
-        detetected_voters = []
-        if result:
-            for content, corner_points in zip(multi_content, multi_corner_points):
-                try:
-                    content_dict = ast.literal_eval(content)
-                    display_text = ", ".join(str(key) for key in content_dict.values())
-                    detetected_voters.append(content_dict["id_number"])
-                    frame = self.__make_detected_qrcodes_visible(frame, corner_points)
-                    frame = self.__label_detected_qrcodes(frame, corner_points, display_text)
-                except Exception:
-                    pass
-        return frame, detetected_voters
-
-    def __label_detected_qrcodes(self, frame, corner_points, content):
-        frame = putText(
-            img=frame,
-            text=content,
-            org=corner_points[0].astype(int),
-            fontFace=FONT_HERSHEY_SIMPLEX,
-            fontScale=1,
-            color=(0, 0, 0),
-            thickness=2,
-            lineType=LINE_AA,
-        )
-        return frame
-
-    def __make_detected_qrcodes_visible(self, frame, corner_points):
-        frame = polylines(
-            img=frame,
-            pts=[corner_points.astype(int)],
-            isClosed=True,
-            color=(0, 0, 255),
-            thickness=5,
-        )
-        return frame
 
     @staticmethod
     def create_voting_qr_code(id_number: int, name: str):

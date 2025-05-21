@@ -1,5 +1,6 @@
 import os
 
+from config_detection_strategies import detection_strategies
 from qrvote import QRvote
 
 
@@ -27,6 +28,7 @@ def voting_process():
     This function should handle the voting process and detect QR codes from the camera stream.
     """
     sources = input("Enter sources seperated by comma (sources can be camera-id's or filepath's): ")
+    detection_strategy = input("Enter detection strategy (1) CV_QRCodeDetection (2) X: ")
     # TODO UNCOMMENT THIS (FOR TESTING PURPOSES ONLY)
     # sources = dummy_camera_stream_1 + "," + dummy_camera_stream_2
     # sources = dummy_camera_stream_little_1
@@ -35,13 +37,24 @@ def voting_process():
         return
     sources = sources.split(",")
     sources = [int(source) if source.isdigit() else source for source in sources]
-    qrvote = QRvote(sources=sources)
+
+    if not detection_strategy:
+        print("No detection strategy provided.")
+        return
+
+    if detection_strategies.get(detection_strategy) is None:
+        print("Invalid detection strategy provided.")
+        return
+
+    detection_strategy = detection_strategies.get(detection_strategy)
+
+    qrvote = QRvote(sources=sources, detection_strategy=detection_strategy)
     qrvote.detect_votes_from_camera_stream()
 
 
 def main():
     while True:
-        print("\n" * 10, "QRvote Main Menu")
+        print("QRvote Main Menu")
         print("1. Register a voter")
         print("2. Start voting process")
         print("3. Exit")
