@@ -1,72 +1,19 @@
-import ast
 import os
-from abc import ABC, abstractmethod
 from pathlib import Path
 from threading import Thread
 from typing import List, Union
 
 import qrcode
 from cv2 import (
-    FONT_HERSHEY_SIMPLEX,
-    LINE_AA,
-    QRCodeDetector,
     destroyAllWindows,
     imshow,
-    polylines,
-    putText,
     waitKey,
 )
 from fpdf import FPDF
 
 from config import pdf_output_file, voters_dir
+from detection_strategy import DetectionStrategy
 from stream import Stream
-
-
-class DetectionStrategy(ABC):
-    @abstractmethod
-    def detect_votes_from_frame(self, frame):
-        pass
-
-    def label_detected_qrcodes(self, frame, corner_points, content):
-        frame = putText(
-            img=frame,
-            text=content,
-            org=corner_points[0].astype(int),
-            fontFace=FONT_HERSHEY_SIMPLEX,
-            fontScale=1,
-            color=(0, 0, 0),
-            thickness=2,
-            lineType=LINE_AA,
-        )
-        return frame
-
-    def make_detected_qrcodes_visible(self, frame, corner_points):
-        frame = polylines(
-            img=frame,
-            pts=[corner_points.astype(int)],
-            isClosed=True,
-            color=(0, 0, 255),
-            thickness=5,
-        )
-        return frame
-
-
-class CV2QRCodeDetector(DetectionStrategy):
-    def detect_votes_from_frame(self, frame):
-        detector = QRCodeDetector()
-        result, multi_content, multi_corner_points, _ = detector.detectAndDecodeMulti(frame)
-        detetected_voters = []
-        if result:
-            for content, corner_points in zip(multi_content, multi_corner_points):
-                try:
-                    content_dict = ast.literal_eval(content)
-                    display_text = ", ".join(str(key) for key in content_dict.values())
-                    detetected_voters.append(content_dict["id_number"])
-                    frame = self.make_detected_qrcodes_visible(frame, corner_points)
-                    frame = self.label_detected_qrcodes(frame, corner_points, display_text)
-                except Exception:
-                    pass
-        return frame, detetected_voters
 
 
 class QRvote:

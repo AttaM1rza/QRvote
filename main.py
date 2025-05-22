@@ -29,7 +29,7 @@ def main():
     vote_parser = subparsers.add_parser("vote", help="Start the voting process")
     vote_parser.add_argument(
         "--sources",
-        help="Comma-separated list of camera IDs (ex. 0, 1) or file paths (ex. videos/sample.mp4). By default, the laptop camera is 0.",
+        help="Comma-separated list of camera IDs (ex. 0,1,2) or file paths (ex. videos/sample.mp4). By default, the laptop camera is 0.",
         default="0",
     )
     vote_parser.add_argument(
