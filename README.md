@@ -53,3 +53,7 @@ To extend QRvote with additional QR code detection libraries and algorithms, def
 
 - The system can detect multiple QR codes at the same time.
 - Detection is not optimized for long distances yet.
+- Before using QreaderDetection make sure to follow the installation steps:
+  - https://pypi.org/project/qreader/
+  - macos specific workaround regarding `import error: zbar shared library not found` https://pypi.org/project/qreader/
+  - choose the size of the YOLO model by changing this part: `detector = QReader(model_size="l")` (search: STRG+F).A bigger model gives better results, but it runs more slowly.
